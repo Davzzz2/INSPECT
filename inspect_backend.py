@@ -14,7 +14,7 @@ import os
 app = Flask(__name__)
 
 def parse_inspect_link(link):
-    """Parse a steam:// inspect link and extract item info"""
+    """Parse a steam:// inspect link and extract item info using cs2inspect"""
     try:
         # Decode URL
         decoded = urllib.parse.unquote(link)
@@ -28,12 +28,33 @@ def parse_inspect_link(link):
             def_index = int(match.group(4))
             print(f"Extracted: asset_id={asset_id}, def_index={def_index}")
             
-            # Note: Inspect links don't contain paint info, only defindex
-            # To get paint info, you'd need to query Steam Game Coordinator
-            # For now, return defindex only - paint info must come from gen code
+            # Use cs2inspect to get actual item data from Steam
+            try:
+                print(f"Querying Steam for item details using cs2inspect...")
+                # cs2inspect.link() can parse inspect links and query Steam
+                item_data = cs2inspect.link(link)
+                
+                if item_data and isinstance(item_data, dict):
+                    print(f"Got item data from cs2inspect: {item_data}")
+                    return {
+                        "defindex": def_index,
+                        "paintindex": item_data.get("paintindex", 0),
+                        "paintseed": item_data.get("paintseed", 0),
+                        "floatvalue": item_data.get("floatvalue", item_data.get("paintwear", 0.0)),
+                        "itemid": asset_id
+                    }
+                else:
+                    print(f"cs2inspect returned invalid data: {item_data}")
+            except Exception as e:
+                print(f"Error using cs2inspect: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Fallback: return defindex only if cs2inspect fails
+            print(f"Falling back to defindex only (no paint info available)")
             return {
                 "defindex": def_index,
-                "paintindex": 0,  # Not available in inspect link alone
+                "paintindex": 0,  # Not available without Steam query
                 "paintseed": 0,
                 "floatvalue": 0.0,
                 "itemid": asset_id
