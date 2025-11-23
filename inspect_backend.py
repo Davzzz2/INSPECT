@@ -99,9 +99,14 @@ def inspect():
         print(f"Returning item info: {item_info}")
         
         # Return in cs2-inspect-service format
+        # Convert defindex to string if it's too large (JavaScript/JSON number precision issue)
+        defindex_value = item_info["defindex"]
+        if defindex_value > 9007199254740991:  # JavaScript Number.MAX_SAFE_INTEGER
+            defindex_value = str(defindex_value)
+        
         return jsonify({
             "iteminfo": {
-                "defindex": item_info["defindex"],
+                "defindex": defindex_value,
                 "paintindex": item_info["paintindex"],
                 "paintseed": item_info["paintseed"],
                 "floatvalue": item_info["floatvalue"],
